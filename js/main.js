@@ -4,39 +4,43 @@ $(function () {
 
 function Retrieve() {
     var dataArray = [];
-    var URL = 'https://script.google.com/macros/s/AKfycbwkB1DwEJ55JelWVYbx9kc2yo76O565bFEzmLi8HOY8shH8R-Id6M1eBE5rvAOPTyyRCQ/exec';
+    // 📋 請確認此處的網址為您 Apps Script 的網頁應用程式 URL
+    var URL = 'https://script.google.com/macros/s/AKfycbwNhgbNItLUP97MwWIHMKyN9pTU9wse0XFlP2nYNb0XKOHiOZZ20F_NgiS298wN9syAcQ/exec';
 	
     $.ajax({
         url: URL,
-        type: 'POST',
+        type: 'GET', // ✨ 修正：改為 GET 請求配合 Apps Script 的 doGet，連線最穩定且不觸發 CORS 阻擋
         dataType: "json",
         error: function (xhr) {
-            alert('發生錯誤！請重新再試一次～');
+            alert('發生錯誤！無法與佈告欄資料庫連線，請重新再試一次～');
         },
         success: function (Jdata) {
             var Info = Jdata.data;
-			
-			var Length=Number(Info.length)
-			if(Length > 0) {
-				for (i = 0; Info.length > i; i++) {
-					FillTime = Info[i].FillTime;
-					APP_Email = Info[i].APP_Email;
-					Appclass = Info[i].Appclass;
-					APP_name = Info[i].APP_name;
-					ItemClass = Info[i].ItemClass;
-					BorrowDate = Info[i].BorrowDate;
-					StartTime = Info[i].StartTime;
-					EndTime = Info[i].EndTime;
-					Reason = Info[i].Reason;
-					// 印出資料
-					print();
-				};
-			}else{
-			$("#table-data").append('暫無資料');
-		}
+			var Length = Number(Info.length);
+            
+            // ✨ 修正：載入新資料前，先清空原本 tbody 內的所有舊內容
+            $("#table-data").html(''); 
 
-            //  資料列印
-            function print() {
+			if(Length > 0) {
+				for (var i = 0; Info.length > i; i++) {
+                    // ✨ 修正：加上 var 宣告為區域變數，避免全域變數相互污染
+					var FillTime = Info[i].FillTime;
+					var Appclass = Info[i].Appclass;
+					var APP_name = Info[i].APP_name;
+					var ItemClass = Info[i].ItemClass;
+					var BorrowDate = Info[i].BorrowDate;
+					var EndTime = Info[i].EndTime;
+					var Reason = Info[i].Reason;
+                    
+					// 印出資料 (將變數帶入函式中傳遞)
+					print(FillTime, Appclass, APP_name, ItemClass, BorrowDate, EndTime, Reason);
+				}
+			} else {
+			    $("#table-data").append('<tr id="no-data-row"><td colspan="7" style="text-align:center; padding: 20px; color: gray;">目前暫無待處理的公告事項</td></tr>');
+		    }
+
+            // 資料列印 (修正：明確接收參數)
+            function print(FillTime, Appclass, APP_name, ItemClass, BorrowDate, EndTime, Reason) {
                 $("#table-data").append(
                     '<tr>' +
                     '<td class="w-15">' + FillTime + '</td>' +
@@ -44,60 +48,64 @@ function Retrieve() {
                     '<td class="w-10">' + APP_name + '</td>' +
                     '<td class="w-10">' + ItemClass + '</td>' +
                     '<td class="w-15">' + BorrowDate + '</td>' +
-                    '<td class="w-15">' + StartTime + '</td>' +
                     '<td class="w-15">' + EndTime + '</td>' +
-                    '<td class="w-10">' + Reason + '</td>' +
+                    '<td class="w-15">' + Reason + '</td>' +
                     '</tr>'
                 );
-            };
-            // 公告事項搜尋            
-            $("#doaction").click(function () {
+            }
+
+            // 公告事項搜尋 (修正：使用 off("click") 防止重複綁定點擊事件)            
+            $("#doaction").off("click").click(function () {
                 select();
             });
 
             function select() {
-                var result = "";
-                $("#select").each(function () {
-                    result = $(this).val();
-                    search_table($(this).val());
-                });
-            };
+                var selectedValue = $("#select").val();
+                search_table(selectedValue);
+            }
 
             function search_table(value) {
-               	// 1. 先移除舊的「暫無資料」提示列（避免重複顯示）
-   		$("#no-data-row").remove();
+               	// 1. 先移除舊的「暫無資料」提示列
+   		        $("#no-data-row").remove();
 
-    		var visibleCount = 0; // 用來計算目前顯示的列數
+    		    var visibleCount = 0; // 用來計算目前顯示的列數
 
-   		$('tbody tr').each(function () {
-        	    var found = 'false';
-        	    $(this).each(function () {
-            		if ($(this).text().toLowerCase().indexOf(value.toLowerCase()) >= 0) {
-                	    found = 'true';
-            		}
-        	    });
+                // ✨ 修正：明確指定只搜尋 #table-data 裡的 tr，不影響 standard thead 結構
+   		        $('#table-data tr').each(function () {
+                    
+                    // 🔥 關鍵修正：如果選擇的是「全部」或空值，直接強制顯示，不進行文字比對
+                    if (value === "全部" || value === "" || value === null) {
+                        $(this).show();
+                        visibleCount++;
+                    } else {
+                        var found = false;
+                        
+                        // ✨ 修正：使用 .find('td') 精確巡覽這一列中的每一個儲存格
+                        $(this).find('td').each(function () {
+                            if ($(this).text().toLowerCase().indexOf(value.toLowerCase()) >= 0) {
+                                found = true;
+                            }
+                        });
 
-       		    if (found == 'true') {
-            	        $(this).show();
-            		    visibleCount++; // 如果這列符合搜尋條件，計數加 1
-        	    } else {
-            	        $(this).hide();
-        	    }
+                        if (found === true) {
+                            $(this).show();
+                            visibleCount++; 
+                        } else {
+                            $(this).hide();
+                        }
+                    }
     	    	});
 
-   		// 2. 如果計數為 0，表示沒有符合搜尋條件的資料
-    		if (visibleCount ===0) {
-        	    // 在 tbody 中新增一行提示文字，colspan 設為 8 是因為你的表格原本有 8 欄
-        	    $('tbody').append(
-            		'<tr id="no-data-row">' +
-           		'<td colspan="8" style="text-align:center; padding: 20px; color: gray;">暫無資料</td>' +
-           		 '</tr>'
-        	    );
-    		}
+   		        // 2. 如果計數為 0，表示沒有符合搜尋條件的資料
+    		    if (visibleCount === 0) {
+        	        $('#table-data').append(
+            		    '<tr id="no-data-row">' +
+           		        '<td colspan="7" style="text-align:center; padding: 20px; color: gray;">找不到符合「' + value + '」的公告事項</td>' +
+           		        '</tr>'
+        	        );
+    		    }
+
+	        }
 	    }
-	}
     });
-};
-
-
-
+}
