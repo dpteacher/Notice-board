@@ -5,7 +5,7 @@ $(function () {
 function Retrieve() {
     var dataArray = [];
     // 📋 請確認此處的網址為您 Apps Script 的網頁應用程式 URL
-    var URL = 'https://script.google.com/macros/s/AKfycbwNhgbNItLUP97MwWIHMKyN9pTU9wse0XFlP2nYNb0XKOHiOZZ20F_NgiS298wN9syAcQ/exec';
+    var URL = 'https://script.google.com/macros/s/AKfycbwCPDnVFdJ-2YNsV6qbzE5d-RdvhF_ZUPlyJQvUDorYA3vmZ8mCtklGFjrvY0TLakuwQg/exec';
 	
     $.ajax({
         url: URL,
